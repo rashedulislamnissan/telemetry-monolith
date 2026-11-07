@@ -1,8 +1,21 @@
 # Progress
 
 ## Status
-- **Done:** M1 look and skeleton, M2 real signal bus
-- **Next:** M3, particles and conduits driven by the bus
+- **Done:** M1 look and skeleton, M2 real signal bus, M3 particles and conduits
+- **Next:** M4, interaction surge
+
+## M3: particles and conduits (done)
+- `render/conduits.js`: 10 curved conduits (one per channel plus a `system` one for device/visibility) from the screen edge into each ring at a fixed angle. The top wedge is kept clear for the label spine. On narrow screens the origins lean vertical so side conduits are not stubs. The resting control point (`rx1/ry1`) is stored for M4 to bend toward the cursor.
+- `render/particles.js`: pooled (160, hard cap). **Every bus event becomes exactly one particle** carrying a copy of the event (seq, label, raw...). The label drawn is the event's own label, verbatim. Particles entering the same conduit are spaced 0.12 s apart, so load bursts become a stream; a backlog over 4 s is counted as dropped, never faked. Labels are capped at the newest 28, flip sides at screen edges, and fade 0.8 s after landing.
+- Arrival reactions (each caused by that particle's real event): ring flash (soft for periodic frame/heap/ping samples, full for discrete events, red for faults); heap sets the core size (session min..max mapped to 0.8-1.2x); interaction pulses the core; long task gives a red shockwave + red core pulse; ping gives a faint amber pulse ring.
+- The core glows amber only once real heap data arrives (or on a real pulse); on browsers without `performance.memory` it stays Bone.
+- Reduced motion: no shockwaves, half-strength flashes, particles travel at 0.6x speed.
+
+### Checks run (Chromium, Firefox, WebKit; desktop 1440x900 and phone 390x844 @3x)
+- **Idle (6 s, no input):** a steady stream in every engine from frame, ping, resource (+ heap in Chromium): 16-22 live particles.
+- **Honesty audit:** for every live particle, its label equals the bus event's label for the same seq (0 mismatches), and every particle has raw data (0 missing). Spawned particles = bus events (1:1), with one exception noted below.
+- After a 90 ms page long task, pointer moves and a click: longtask (Chromium), interaction, input and frame particles all arrive; zero mismatches.
+- 60 fps held in Chromium (p95 16.7-16.8 ms) at both sizes. Zero console errors or warnings in all engines.
 
 ## M2: real signal bus (done)
 - `js/signals/bus.js`: one bus. Pooled 512-slot event history, per-type throttle (throttled counts are kept and shown in the debug log), per-channel status: `waiting`, `live`, `fallback`, `unsupported`, `error`.
@@ -46,13 +59,14 @@
 - **Mutations:** the canvas resize (`CANVAS[width]`, `CANVAS[height]`) and the back-link `href` at boot are counted, because they are real DOM changes. Only `data-self` nodes are ignored.
 
 ## Known issues
+- Headless WebKit on Windows renders in software and misses frames at 3x DPR. Each miss is a real `FRAME DROP` event, so the frame conduit backlog exceeded 4 s and 4 events were dropped (counted, not hidden). M7's adaptive quality should lower render cost when frames drop; consider also folding a run of drops into one event.
 - Headless frame timing is idealised. The 60 fps check still needs a look in a real Chrome window on a mid-range laptop.
 - Visibility events are wired but not covered by automated tests, because headless browsers do not fire `visibilitychange`. Check by switching tabs with `?debug` open.
 - Test harness note: Chrome does not count DevTools `evaluate()` calls as long tasks; trigger test long tasks from a `setTimeout` inside the page.
 - Dev note: Playwright needs `--no-proxy-server` (Chromium) and `network.proxy.type = 0` (Firefox) in this environment to reach the local server.
 
-## Next steps (M3)
-- Pooled particle system with a hard cap, fed by bus events. Each particle carries a copy of its event (label + raw).
-- Conduits: vector paths from the screen edge (resource), core (heap) and rings to the label spine. Particles travel along them.
-- Monospace labels on particles showing the real event label. No decorative particle ever carries a label.
-- Core size follows the real heap where exposed. Long tasks give a red burst.
+## Next steps (M4)
+- Read `kinematics` (signals/pointer.js) every frame: bend each conduit's control point toward the cursor, scaled by speed.
+- Gauges spike with cursor speed/jerk; ring spin surges with wheel deltas (virtual scroll).
+- Click/tap bursts at the pointer.
+- Check: works with mouse and touch, and no frame drops during fast movement.

@@ -25,6 +25,10 @@ const CONFIG = {
   HIST_FAULT_MS: 25,  // ~1.5x the 60 Hz budget: slower frames read as dropped
   HIST_RECENT: 60,    // newest N frames are drawn brighter
   HIST_LEN: 0.8,      // full tick length as a share of the gap to the next ring
+
+  FLASH_DECAY: 2.5,   // per second
+  FLASH_ALPHA: 0.75,
+  FLASH_WIDTH: 1.5,
 };
 
 export function createRings(channels) {
@@ -33,11 +37,38 @@ export function createRings(channels) {
   // An unsupported channel's ring is drawn as a bare Graphite circle with no ticks:
   // visibly present, visibly empty.
   const dim = (i) => channels[i].status === 'unsupported';
+  // Arrival flashes: set only when a real particle lands on the ring.
+  const flashA = new Float32Array(count);
+  const faultA = new Float32Array(count);
 
   function update(dt, motion) {
+    const k = Math.exp(-CONFIG.FLASH_DECAY * dt);
     for (let i = 0; i < count; i++) {
       angle[i] = (angle[i] + CONFIG.STYLES[i].speed * dt * motion) % TAU;
+      flashA[i] *= k;
+      faultA[i] *= k;
     }
+  }
+
+  function flash(i, fault, amount = 1) {
+    if (i < 0 || i >= count) return;
+    if (fault) faultA[i] = Math.min(1, faultA[i] + amount);
+    else flashA[i] = Math.min(1, flashA[i] + amount);
+  }
+
+  function drawFlashes(ctx, L) {
+    ctx.lineWidth = CONFIG.FLASH_WIDTH;
+    for (let i = 0; i < count; i++) {
+      const a = Math.max(flashA[i], faultA[i]);
+      if (a < 0.02) continue;
+      ctx.strokeStyle = faultA[i] > flashA[i] ? PALETTE.fault : PALETTE.sodium;
+      ctx.globalAlpha = a * CONFIG.FLASH_ALPHA;
+      ctx.beginPath();
+      ctx.arc(L.cx, L.cy, L.ringR[i], 0, TAU);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+    ctx.lineWidth = 1;
   }
 
   function drawStructure(ctx, L) {
@@ -158,8 +189,9 @@ export function createRings(channels) {
     const prev = ctx.globalCompositeOperation;
     ctx.globalCompositeOperation = 'lighter';
     drawFrameHistogram(ctx, L, clock);
+    drawFlashes(ctx, L);
     ctx.globalCompositeOperation = prev;
   }
 
-  return { update, draw };
+  return { update, draw, flash };
 }
