@@ -4,6 +4,8 @@ import { PALETTE } from './palette.js';
 const CONFIG = {
   TITLE: 'TELEMETRY MONOLITH',
   CLOCK_HZ: 10,   // session clock refresh; the string is rebuilt only this often
+  MARK_R: 0.55,   // logo hexagon radius, in multiples of the HUD font size
+  MARK_GAP: 8,    // px between the hexagon and the title
 };
 
 function pad2(n) {
@@ -37,6 +39,25 @@ export function createHud() {
     ctx.textBaseline = 'top';
     ctx.fillStyle = PALETTE.bone;
     ctx.fillText(CONFIG.TITLE, x, y);
+
+    // The logo's hexagon, hung in the margin so the text column stays aligned.
+    // Narrow screens have no margin to spare; the favicon carries the mark there.
+    if (!L.narrow) {
+      const r = L.hudPx * CONFIG.MARK_R;
+      const mx = x - r - CONFIG.MARK_GAP;
+      const my = y + L.hudPx * 0.5;
+      ctx.strokeStyle = PALETTE.bone;
+      ctx.lineWidth = 1.25;
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const a = -Math.PI / 2 + (i * Math.PI) / 3;
+        if (i === 0) ctx.moveTo(mx + r * Math.cos(a), my + r * Math.sin(a));
+        else ctx.lineTo(mx + r * Math.cos(a), my + r * Math.sin(a));
+      }
+      ctx.closePath();
+      ctx.stroke();
+      ctx.lineWidth = 1;
+    }
     ctx.fillStyle = PALETTE.ash;
     ctx.fillText('SESSION', x, y + lh);
     ctx.fillStyle = PALETTE.sodium;

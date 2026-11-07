@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Telemetry Monolith logo: an amber hexagon core inside an orbit ring with one particle">
+  <!-- Tile: pure black, like the page. Shapes are bold so they survive small sizes and halftone. -->
+  <rect width="512" height="512" rx="112" fill="#000000"/>
+  <!-- Outer orbit in three arcs, like the page's segmented rings (gaps at -60, 60 and 180 degrees;
+       one gap at the top read as a power button at small sizes). -->
+  <path d="M 354.66 115.10 A 172 172 0 0 1 354.66 396.90 M 328.69 411.88 A 172 172 0 0 1 84.65 271.00 M 84.65 241.00 A 172 172 0 0 1 328.69 100.12" fill="none" stroke="#FF9E1B" stroke-width="26" stroke-linecap="butt"/>
+  <!-- Inner orbit. -->
+  <circle cx="256" cy="256" r="112" fill="none" stroke="#ECE5D8" stroke-width="12"/>
+  <!-- The core. -->
+  <polygon points="256,190 313.2,223 313.2,289 256,322 198.8,289 198.8,223" fill="#FF9E1B"/>
+  <!-- One particle arriving on the outer orbit. -->
+  <circle cx="396.9" cy="157.3" r="24" fill="#ECE5D8"/>
+</svg>

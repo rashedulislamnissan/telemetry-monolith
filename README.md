@@ -4,8 +4,10 @@ A mission-control display that visualizes its own real execution. Every particle
 
 **Live:** https://rashedulislamnissan.github.io/telemetry-monolith/
 
-![Demo GIF placeholder](./docs/demo.gif)
-<!-- PLACEHOLDER: record a short GIF of the page and save it as docs/demo.gif -->
+![Telemetry Monolith: orbital rings around a hexagonal core, with labelled particles of real browser events](./assets/og.jpg)
+<!-- PLACEHOLDER: record a short GIF of the page, save it as docs/demo.gif and swap it in above. -->
+
+**Logo:** [`favicon.svg`](./favicon.svg) (vector), plus [`assets/logo-1024.webp`](./assets/logo-1024.webp) and [`.png`](./assets/logo-1024.png) for use elsewhere.
 
 ## How it works
 The page draws a full-screen instrument with Canvas 2D, and every labelled value on it comes from the page's own execution. One event bus collects:
