@@ -1,8 +1,18 @@
 # Progress
 
 ## Status
-- **Done:** M1-M6, and M7's local work (polish and resilience)
-- **Next:** M7 deploy to GitHub Pages (waiting for the owner's go-ahead to create the public repo and push)
+- **Done:** all milestones M1-M7. **Live:** https://rashedulislamnissan.github.io/telemetry-monolith/
+- **Repo:** https://github.com/rashedulislamnissan/telemetry-monolith (public, Pages from `main` / root)
+- **Open items (by hand):** record `docs/demo.gif`; check in real Safari and on a real phone; listen to the audio.
+
+## Deploy (done)
+- Public repo created with the GitHub CLI; Pages enabled from `main` / root; first build `built`.
+- `CLAUDE.md` and `monolith.md` (private planning files) are git-ignored and were removed from the whole history before the first push; they remain on disk. The original history is kept only in the local branch `backup/pre-public-history` (never pushed). Delete it with `git branch -D backup/pre-public-history` once it is not needed.
+- **Live check** (Chromium desktop + phone @3x, Firefox, WebKit, against the real URL):
+  - 0 console errors and 0 HTTP errors; all 38 files load via relative paths under `/telemetry-monolith/`.
+  - Ping to the real host 11-17 ms.
+  - Caption visible by 11 s; back-link goes to the portfolio; particles = bus events.
+  - Expected N/A for longtask and heap in Firefox/WebKit.
 
 ## M7: polish and resilience (done locally)
 - **Owner details:** `config.js` now holds the owner's name, role, portfolio URL and repo URL, taken from the **visible** text of https://nissan-portfolio.pages.dev/. Its `<title>`/meta tags carry an older role line and were not used. The back-link has a title naming the owner. README rewritten for GitHub visitors (live link, how it works, controls, GIF placeholder, credits).
@@ -152,7 +162,7 @@
 - Test harness note: Chrome does not count DevTools `evaluate()` calls as long tasks; trigger test long tasks from a `setTimeout` inside the page.
 - Dev note: Playwright needs `--no-proxy-server` (Chromium) and `network.proxy.type = 0` (Firefox) in this environment to reach the local server.
 
-## Next steps (deploy)
-- Create public repo `rashedulislamnissan/telemetry-monolith`, push `main`, enable Pages from `main` / root.
-- Verify the live site: loads under `/telemetry-monolith/` with relative paths, ping works, no console errors in all three engines.
-- Record the demo GIF (`docs/demo.gif`); real Safari and real-device checks by hand.
+## Next steps
+- Record the demo GIF (`docs/demo.gif`) and push it.
+- Real Safari (macOS/iOS) and real-phone check by hand; listen to the hum.
+- Next project in the build order: Tearable Swiss Poster (Netlify).
