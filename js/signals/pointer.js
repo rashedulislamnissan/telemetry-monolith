@@ -71,7 +71,8 @@ export function startPointer(bus) {
     k.pointerType = e.pointerType;
     bus.emit({
       ch: 'input', type: 'pointerdown', label: `PTR DOWN ${e.pointerType.toUpperCase()}`,
-      readout: `DOWN ${e.clientX},${e.clientY}`, value: 1, unit: '', t: e.timeStamp,
+      // Touch coordinates are fractional; the readout rounds, raw keeps them exact.
+      readout: `DOWN ${Math.round(e.clientX)},${Math.round(e.clientY)}`, value: 1, unit: '', t: e.timeStamp,
       raw: { source: 'pointerdown', pointerType: e.pointerType, x: e.clientX, y: e.clientY, button: e.button, pressure: e.pressure },
     });
   }, { passive: true });

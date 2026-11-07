@@ -1,8 +1,32 @@
 # Progress
 
 ## Status
-- **Done:** M1 look and skeleton, M2 real signal bus, M3 particles and conduits, M4 interaction surge, M5 procedural sound
-- **Next:** M6, the 10 s reveal
+- **Done:** M1-M6 (look, signal bus, particles, surge, sound, reveal)
+- **Next:** M7, polish, resilience, deploy
+
+## M6: the 10 s reveal (done)
+- `js/reveal.js` + DOM in `index.html` (all `data-self`):
+  - **Caption:** "Every particle is a real browser event." with a hint ("Hover…" or, on coarse pointers, "Tap any particle to read its raw data.").
+  - **Raw event stream:** the newest bus events as one-line raw JSON, prefixed with time and type, refreshed at 4 Hz.
+  - Caption and stream fade in together, once, at 8.5 s after navigation start: one orchestrated moment. Reduced motion fades without the slide.
+- **Placement:** the empty left field (wide); below the rings (portrait tablets); a tighter left field with a wrapping caption (e.g. 1024x700); the band under the HUD (phones, with stream lines fitted to the room). Checked at 1440x900, 1280x720, 1920x1080, 1024x700, 768x1024, 844x390, 390x844 and 360x640: never over the ring system.
+- **Freeze:**
+  - **Mouse:** whatever particle is under the cursor freezes, including one drifting into a still cursor; moving 40 px away, Escape, the pointer leaving, or a resize lets it go.
+  - **Touch or pen:** a tap freezes the nearest particle within 28 px; a tap elsewhere releases it.
+  - A frozen particle holds its exact position (even while its conduit bends), keeps its label, is never recycled from the pool, and gets a highlight ring plus a leader line to its tooltip.
+- **Tooltip:** label, channel/type, event number and time, then raw fields with the most telling first (name, entryType, timing, sizes, status…; Resource Timing has 20+ keys). Built with `textContent` only. Placed beside the particle, or above/below it when neither side fits.
+- **Fix:** the touch readout showed raw fractional coordinates (`DOWN 182.6209…,564.38…`); it now rounds (raw data keeps exact values).
+
+### Checks run (Chromium, Firefox, WebKit)
+- Caption opacity 0 at 7 s and 1 at 10 s in all three engines.
+- **Tooltip data matches the browser:** hover-froze a real resource particle (`/css/style.css`) and compared its raw data with `performance.getEntriesByName()`: 0 differing fields across startTime, duration, transferSize, encoded/decodedBodySize, responseEnd and initiatorType. The tooltip text shows those values, in all three engines.
+- Frozen particle moved 0 px over 600 ms; moving away releases it and hides the tooltip.
+- Stream: all 8 lines map to real bus events by timestamp.
+- Touch (Chromium phone via CDP): a tap freezes a particle with the tooltip inside the viewport; a tap on empty space releases it.
+- Regressions: M3 audit (0 mismatches, spawned = bus), M4 (0 frames over 25 ms), M5 (silent before gesture, M mutes). No console errors anywhere.
+
+### Note on LCP
+- The PAINT/LCP/CLS ring reads **LCP ~8.8 s** after the reveal: the caption is a large text block that first becomes visible at 8.5 s, so Chrome correctly reports it as a new Largest Contentful Paint (any click or key press before then stops LCP reporting). This is real and is left as is. Hiding it (e.g. painting the caption at 1% opacity from load) would be gaming the metric.
 
 ## M5: procedural sound (done)
 - `js/audio-engine.js`: the graph only. It runs on any BaseAudioContext (live or offline), and every method takes an explicit time so it can be rendered and measured offline.
@@ -102,8 +126,9 @@
 - Test harness note: Chrome does not count DevTools `evaluate()` calls as long tasks; trigger test long tasks from a `setTimeout` inside the page.
 - Dev note: Playwright needs `--no-proxy-server` (Chromium) and `network.proxy.type = 0` (Firefox) in this environment to reach the local server.
 
-## Next steps (M6)
-- `js/reveal.js`: the caption "EVERY PARTICLE IS A REAL BROWSER EVENT." fades in at about 8-10 s (one orchestrated moment).
-- Hover or tap a particle: freeze it (copy its slot so it survives pool reuse) and show its raw event data in a tooltip (`data-self`).
-- Raw stream panel (bottom-left, `data-self`) scrolling real PerformanceEntry data from the bus history.
-- Check: a first-time viewer can tell the data is real within 10 s; tooltip data matches the browser's actual entries (compare with `performance.getEntries()`).
+## Next steps (M7)
+- Adaptive quality: watch real frame time; when it stays over budget, lower the particle cap, label cap, render scale (DPR) and decorative detail; restore when healthy.
+- Reduced-motion pass across everything; hidden-tab pause re-verified; mobile layout pass; fallback messages (no canvas, no ES modules).
+- Soak test: 10+ minutes, no memory growth (heap trend, pool sizes, DOM node count, cache sizes); no console errors in Chrome, Firefox, Safari.
+- README: live link, how it works, controls, GIF placeholder. Fill `config.js` placeholders with the owner (ask).
+- Deploy to GitHub Pages (ask before creating the repo or pushing).

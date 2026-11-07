@@ -63,5 +63,5 @@ export function createSurge() {
     s.bend += (bendTarget - s.bend) * (1 - Math.exp(-CONFIG.BEND_EASE * dt));
   }
 
-  return { state: s, update, onWheel, onPress };
+  return { state: s, update, onWheel, onPress, pointerType: () => kinematics.pointerType };
 }

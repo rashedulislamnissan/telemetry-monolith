@@ -10,7 +10,7 @@ A full-screen mission-control display drawn with Canvas 2D. It looks like a moti
 
 ## Controls
 - **Move, scroll, tap or click:** the machine surges
-- **Hover or tap a particle:** freeze it and read its raw event *(milestone M6)*
+- **Hover or tap a particle:** freeze it and read its raw event data. Move away, tap elsewhere or press Esc to let it go.
 - **M** or the **Sound** button: mute or unmute the hum. Sound starts only after your first click, tap or key press.
 
 ## Run locally

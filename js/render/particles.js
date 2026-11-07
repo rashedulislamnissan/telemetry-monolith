@@ -22,6 +22,7 @@ const CONFIG = {
   LABEL_LAND: 0.8,     // s a label stays after landing
   LABEL_EDGE: 6,       // px kept clear at the screen edge; labels flip sides to respect it
   REDUCED_SPEED: 0.6,  // travel speed multiplier under reduced motion
+  HIT_MIN_ALPHA: 0.2,  // nearly faded particles cannot be picked
 };
 
 const SYSTEM_RING = -1;
@@ -44,7 +45,7 @@ function makeSprite(color, dpr) {
 
 function blank() {
   return {
-    active: false, conduit: 0, delay: 0, s: 0, dur: 1, phase: 0, age: 0,
+    active: false, frozen: false, conduit: 0, delay: 0, s: 0, dur: 1, phase: 0, age: 0,
     landA: 0, dir: 1, x: 0, y: 0, alpha: 0,
     // copy of the event
     seq: 0, ch: '', type: '', label: '', fault: false, value: 0, unit: '', t: 0, raw: null,
@@ -70,7 +71,7 @@ export function createParticles(conduits) {
     for (let i = 0; i < CONFIG.MAX; i++) {
       const p = pool[i];
       if (!p.active) return p;
-      if (p.phase === 1 && p.age > oldestAge) { oldestAge = p.age; oldest = i; }
+      if (p.phase === 1 && !p.frozen && p.age > oldestAge) { oldestAge = p.age; oldest = i; }
     }
     // Pool full: recycle the most faded landed particle rather than block new data.
     return oldest >= 0 ? pool[oldest] : null;
@@ -89,6 +90,7 @@ export function createParticles(conduits) {
 
     const speed = CONFIG.SPEED * (motion < 1 ? CONFIG.REDUCED_SPEED : 1);
     p.active = true;
+    p.frozen = false;
     p.conduit = ci;
     p.delay = delay;
     p.s = 0;
@@ -137,6 +139,9 @@ export function createParticles(conduits) {
       const p = pool[i];
       if (!p.active) continue;
       live++;
+      // Frozen (hovered or tapped): it holds its exact position, even while the cursor
+      // bends its conduit. A resize releases it (reveal.layout).
+      if (p.frozen) continue;
       if (p.delay > 0) {
         p.delay -= dt;
         if (p.delay > 0) continue;
@@ -198,10 +203,10 @@ export function createParticles(conduits) {
     let labelled = 0;
     for (let i = 0; i < CONFIG.MAX; i++) {
       const p = pool[i];
-      if (!p.active || p.delay > 0 || p.seq <= floor) continue;
+      if (!p.active || p.delay > 0 || (p.seq <= floor && !p.frozen)) continue;
       // Landed labels fade fast: the dot keeps riding the ring, but stacked labels on
       // one ring would be unreadable.
-      const la = p.phase === 0 ? 1 : 1 - p.age / CONFIG.LABEL_LAND;
+      const la = p.phase === 0 || p.frozen ? 1 : 1 - p.age / CONFIG.LABEL_LAND;
       if (la <= 0) continue;
       const w = p.label.length * charW;
       let right = p.x >= L.cx;
@@ -220,10 +225,26 @@ export function createParticles(conduits) {
     ctx.globalAlpha = 1;
   }
 
+  // Nearest visible particle within r px of (x, y), or null.
+  function hit(x, y, r) {
+    let best = null;
+    let bestD = r * r;
+    for (let i = 0; i < CONFIG.MAX; i++) {
+      const p = pool[i];
+      if (!p.active || p.delay > 0 || p.alpha < CONFIG.HIT_MIN_ALPHA) continue;
+      const dx = p.x - x;
+      const dy = p.y - y;
+      const d = dx * dx + dy * dy;
+      if (d < bestD) { bestD = d; best = p; }
+    }
+    return best;
+  }
+
   return {
     spawn,
     update,
     draw,
+    hit,
     stats,
     pool,
     set onArrive(fn) { onArrive = fn; },

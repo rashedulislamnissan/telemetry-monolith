@@ -13,6 +13,18 @@
 <body>
   <canvas id="stage" role="img" aria-label="Animated instrument display of orbital rings around a hexagonal core, drawn from this page's own browser telemetry."></canvas>
 
+  <!-- The 10 s reveal. data-self: the mutation source ignores everything in here. -->
+  <section class="reveal" id="reveal" data-self aria-live="polite">
+    <p class="reveal-caption">Every particle is a real browser event.</p>
+    <p class="reveal-hint">Hover any particle to read its raw data.</p>
+    <div class="stream" aria-hidden="true">
+      <p class="stream-head">Raw event stream</p>
+      <pre class="stream-body"></pre>
+    </div>
+  </section>
+
+  <div class="tip" id="tip" data-self role="tooltip" hidden></div>
+
   <nav class="corner" aria-label="Page controls">
     <!-- data-self: its text changes because of us, so the mutation source ignores it. -->
     <button class="mute" id="mute" type="button" aria-pressed="true" aria-keyshortcuts="m" data-self>Sound on (M)</button>

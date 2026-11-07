@@ -20,6 +20,7 @@ import { createGauges } from './render/gauges.js';
 import { drawReticle } from './render/reticle.js';
 import { createSurge } from './surge.js';
 import { createAudio } from './audio.js';
+import { createReveal } from './reveal.js';
 
 const CONFIG = {
   MAX_DPR: 2,          // above 2 the fill cost grows faster than anyone can see the difference
@@ -66,6 +67,7 @@ function boot() {
   const gauges = createGauges();
   const audio = createAudio(document.getElementById('mute'));
   audio.render();
+  const reveal = createReveal({ particles, bus, surge });
 
   // Channel readouts follow the bus: latest event wins; status decides N/A.
   // Every event also becomes one particle. Real input events also drive the surge.
@@ -129,6 +131,7 @@ function boot() {
     window.__surge = surge.state;
     window.__conduits = conduits.list;
     window.__audio = audio.state;
+    window.__reveal = reveal.state;
   }
   const signals = startSignals(bus, clock);
 
@@ -150,6 +153,7 @@ function boot() {
     grid.build(L);
     conduits.layout(L);
     labels.invalidate();
+    reveal.layout(L);
   }
 
   // devicePixelRatio changes (zoom, moving between monitors) do not always fire resize.
@@ -183,6 +187,7 @@ function boot() {
     core.draw(ctx, L);
     labels.draw(ctx, L);
     particles.draw(ctx, L);
+    reveal.draw(ctx, L);
     drawReticle(ctx, surge.state);
     hud.draw(ctx, L, now);
     gauges.draw(ctx, L, surge.state, now, byId('input').status === STATUS.UNSUPPORTED);
@@ -198,6 +203,7 @@ function boot() {
       acc -= CONFIG.STEP;
     }
     audio.update(surge.state.energy, now);
+    reveal.update(now, L);
     render(now);
   }
 
