@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#000000">
+  <meta name="description" content="A mission-control visual that draws this page's own real browser telemetry.">
+  <title>Telemetry Monolith</title>
+  <link rel="stylesheet" href="./css/style.css">
+</head>
+<body>
+  <canvas id="stage" role="img" aria-label="Animated instrument display of orbital rings around a hexagonal core, drawn from this page's own browser telemetry."></canvas>
+
+  <a class="backlink" id="backlink" href="#">Portfolio</a>
+
+  <div class="fallback" id="fallback" hidden>
+    <p id="fallback-msg"></p>
+  </div>
+
+  <noscript>
+    <div class="fallback"><p>This page draws live browser telemetry with JavaScript. Turn JavaScript on to see it.</p></div>
+  </noscript>
+
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,84 @@
+/* Tokens mirror js/render/palette.js. Sodium is reserved for live data, Fault for faults. */
+:root {
+  --void: #000000;
+  --graphite: #1F1D1B;
+  --ash: #7E776F;
+  --bone: #ECE5D8;
+  --sodium: #FF9E1B;
+  --fault: #FF2B3A;
+  --mono: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --edge: 16px; /* matches layout.js margin on narrow screens */
+}
+
+@media (min-width: 760px) {
+  :root { --edge: 40px; }
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--void);
+  color: var(--bone);
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+body {
+  font: 400 11px/1.4 var(--mono);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#stage {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Padding is subtracted from the edge so the text itself lines up with the canvas margin. */
+.backlink {
+  position: fixed;
+  right: calc(var(--edge) - 8px + env(safe-area-inset-right, 0px));
+  bottom: calc(var(--edge) - 6px + env(safe-area-inset-bottom, 0px));
+  padding: 6px 8px;
+  color: var(--ash);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.backlink:hover { color: var(--bone); }
+
+.backlink:focus-visible {
+  outline: 1px solid var(--sodium);
+  outline-offset: 0;
+  color: var(--bone);
+}
+
+.fallback {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: var(--void);
+}
+
+.fallback[hidden] { display: none; }
+
+.fallback p {
+  max-width: 44ch;
+  margin: 0;
+  color: var(--bone);
+  font-size: 12px;
+  line-height: 1.6;
+  border-left: 2px solid var(--fault);
+  padding-left: 12px;
+}
