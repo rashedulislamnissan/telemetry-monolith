@@ -17,7 +17,7 @@
 const CONFIG = {
   HISTORY: 512,           // pooled slots; also the depth of the raw stream and debug log
   MIN_GAP_MS: {           // per-type throttle so bursty sources cannot flood the display
-    pointer: 100,
+    pointer: 150,
     wheel: 100,
     drop: 50,
     mutation: 250,

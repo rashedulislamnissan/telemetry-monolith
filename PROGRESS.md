@@ -1,8 +1,25 @@
 # Progress
 
 ## Status
-- **Done:** M1 look and skeleton, M2 real signal bus, M3 particles and conduits
-- **Next:** M4, interaction surge
+- **Done:** M1 look and skeleton, M2 real signal bus, M3 particles and conduits, M4 interaction surge
+- **Next:** M5, procedural sound
+
+## M4: interaction surge (done)
+- `js/surge.js`: one `energy` value (0-1) driven only by real input: cursor speed (log scale, full at 3000 px/s), wheel px and presses. Fast attack, ~0.6 s release. Also `spin` (wheel, signed) and `bend`. M5 will read `energy` for the hum.
+- Cursor speed counts as 0 once no `pointermove` has arrived for 70 ms, so a still cursor reads 0 rather than its last value.
+- **Beams bend:** each conduit's control point leans toward the cursor (more when fast, less when far), capped at 35% of the conduit's length so the curve never folds back. Both ends stay pinned, and particles follow the bend because they ride the same curve.
+- **Gauges spike:** VEL / ACC / JERK under the session clock with real values, log-scaled bars and a peak-hold tick.
+- **Rings surge:** energy speeds all rings up to 6x; the wheel drives them like a gear train (alternating directions, inner rings faster).
+- **Press burst:** a Bone ring and 14 shards at the pointer (decorative response; the press's own particle carries the `PTR DOWN` label). Conduits brighten and their dash flow speeds up with energy.
+- Reticle with velocity tail replaces the system cursor on fine pointers (`cursor: none` only under `pointer: fine`).
+- Touch: `pointerdown` now anchors a stroke (no hover on touch), and lifting a finger or pen ends presence, so beams relax. Fixed: `pointerleave` was registered on `window`, where it never fires; it is now on the root element.
+- Pointer-move events throttled from 100 to 150 ms; at 10/s the input conduit became an unreadable label pile during drags.
+- Reduced motion: bend and spin scale by the motion factor (0.25); a press shows a smaller ring and no shards.
+
+### Checks run
+- **Mouse (Chromium, Firefox, WebKit):** fast 3-loop circle, 120 moves at 8 ms. Energy peaks at 0.95-0.97, conduits bend up to 201 px, **0 frames over 25 ms** in all three engines (Chromium p95 16.8 ms). Two seconds after stopping, energy is 0.04. Six wheel ticks give ring spin of about 3.5 rad/s.
+- **Touch (Chromium phone 390x844 @3x, real touch events via CDP):** the drag produces `pointer:touch` events, energy peaks at 0.77 and bend at 131 px, 0 frames over 25 ms. After lifting, presence is false and bend is 0.
+- No console errors in any run. M3 honesty audit re-run: 0 label mismatches, spawned = bus events.
 
 ## M3: particles and conduits (done)
 - `render/conduits.js`: 10 curved conduits (one per channel plus a `system` one for device/visibility) from the screen edge into each ring at a fixed angle. The top wedge is kept clear for the label spine. On narrow screens the origins lean vertical so side conduits are not stubs. The resting control point (`rx1/ry1`) is stored for M4 to bend toward the cursor.
@@ -65,8 +82,7 @@
 - Test harness note: Chrome does not count DevTools `evaluate()` calls as long tasks; trigger test long tasks from a `setTimeout` inside the page.
 - Dev note: Playwright needs `--no-proxy-server` (Chromium) and `network.proxy.type = 0` (Firefox) in this environment to reach the local server.
 
-## Next steps (M4)
-- Read `kinematics` (signals/pointer.js) every frame: bend each conduit's control point toward the cursor, scaled by speed.
-- Gauges spike with cursor speed/jerk; ring spin surges with wheel deltas (virtual scroll).
-- Click/tap bursts at the pointer.
-- Check: works with mouse and touch, and no frame drops during fast movement.
+## Next steps (M5)
+- `js/audio.js`: Web Audio hum. A few detuned oscillators plus filtered noise; gain and filter cutoff follow `surge.energy`; soft clicks or blips on real faults (long task) kept subtle.
+- Create the AudioContext only on the first user gesture; ramp every parameter change (no clicks or pops); keep master volume low.
+- Visible mute toggle plus the `M` key. Suspend audio while the tab is hidden.

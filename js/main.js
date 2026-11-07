@@ -16,6 +16,9 @@ import { createDevicePanel } from './render/device.js';
 import { createConduits } from './render/conduits.js';
 import { createParticles } from './render/particles.js';
 import { createEffects } from './render/effects.js';
+import { createGauges } from './render/gauges.js';
+import { drawReticle } from './render/reticle.js';
+import { createSurge } from './surge.js';
 
 const CONFIG = {
   MAX_DPR: 2,          // above 2 the fill cost grows faster than anyone can see the difference
@@ -58,14 +61,23 @@ function boot() {
   const conduits = createConduits(RING_CHANNELS.map((c) => c.id));
   const particles = createParticles(conduits);
   const effects = createEffects();
+  const surge = createSurge();
+  const gauges = createGauges();
 
   // Channel readouts follow the bus: latest event wins; status decides N/A.
-  // Every event also becomes one particle.
+  // Every event also becomes one particle. Real input events also drive the surge.
   let naCount = 0;
   bus.on((e) => {
     const ch = byId(e.ch);
     if (ch && ch.status !== STATUS.UNSUPPORTED) setValue(ch, e.readout, true, e.fault);
     particles.spawn(e, L.motion);
+    if (e.ch === 'input') {
+      if (e.type === 'wheel') surge.onWheel(e.value);
+      else if (e.type === 'pointerdown' && e.raw) {
+        surge.onPress();
+        effects.press(e.raw.x, e.raw.y, L.motion);
+      }
+    }
   });
 
   // What a particle's arrival does. Every reaction is caused by that particle's real event.
@@ -106,7 +118,11 @@ function boot() {
   });
 
   // Test hook (debug only): lets automated checks compare particle labels with bus events.
-  if (startDebug(bus)) window.__particles = particles;
+  if (startDebug(bus)) {
+    window.__particles = particles;
+    window.__surge = surge.state;
+    window.__conduits = conduits.list;
+  }
   const signals = startSignals(bus, clock);
 
   const back = document.getElementById('backlink');
@@ -142,10 +158,11 @@ function boot() {
 
   function update(dt) {
     simT += dt;
+    surge.update(dt, L.motion);
     type.update(dt, L.motion);
-    rings.update(dt, L.motion);
+    rings.update(dt, L.motion, surge.state);
     core.update(dt, L.motion);
-    conduits.update(dt, L.motion);
+    conduits.update(dt, L.motion, surge.state);
     effects.update(dt);
     particles.update(dt, L);
   }
@@ -159,7 +176,9 @@ function boot() {
     core.draw(ctx, L);
     labels.draw(ctx, L);
     particles.draw(ctx, L);
+    drawReticle(ctx, surge.state);
     hud.draw(ctx, L, now);
+    gauges.draw(ctx, L, surge.state, now, byId('input').status === STATUS.UNSUPPORTED);
     devicePanel.draw(ctx, L, naCount > 0);
   }
 

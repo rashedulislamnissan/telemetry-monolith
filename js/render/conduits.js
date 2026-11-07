@@ -20,6 +20,11 @@ const CONFIG = {
   PULSE_ALPHA: 0.6,
   PORT: 2.5,           // half-size of the square origin marker
   FLOW_SPEED: 22,      // px/s of the decorative dash flow
+  FLOW_SURGE: 3,       // flow speed multiplier added at full surge energy
+  SURGE_ALPHA: 0.22,   // extra line alpha at full surge energy
+  BEND_FALLOFF: 520,   // px; conduits far from the cursor lean less
+  BEND_EASE: 10,       // per second, control points follow their target elastically
+  BEND_MAX: 0.35,      // max control-point travel as a share of conduit length
 };
 
 const IDS = Object.keys(CONFIG.ANGLES);
@@ -43,6 +48,7 @@ export function createConduits(ringIds) {
   const index = Object.create(null);
   for (let i = 0; i < list.length; i++) index[list[i].id] = i;
   let flow = 0;
+  let energy = 0;
 
   function layout(L) {
     const a = L.margin * CONFIG.EDGE_INSET;
@@ -73,7 +79,7 @@ export function createConduits(ringIds) {
       const vx = c.x2 - c.x0;
       const vy = c.y2 - c.y0;
       const chord = Math.hypot(vx, vy) || 1;
-      const k = (CONFIG.CURVE * c.bow);
+        const k = CONFIG.CURVE * c.bow;
       c.rx1 = c.x1 = mx - vy * k;
       c.ry1 = c.y1 = my + vx * k;
       c.len = chord * 1.02;
@@ -98,12 +104,30 @@ export function createConduits(ringIds) {
     if (fault) c.fault = 1;
   }
 
-  function update(dt, motion) {
-    flow = (flow + CONFIG.FLOW_SPEED * dt * motion) % 9;
+  // surge: { bend, energy, x, y } from surge.js. Bending moves only the control point,
+  // so both ends stay pinned: the edge port and the ring entry never move.
+  function update(dt, motion, surge) {
+    energy = surge.energy;
+    flow = (flow + CONFIG.FLOW_SPEED * (1 + CONFIG.FLOW_SURGE * energy) * dt * motion) % 9;
     const k = Math.exp(-CONFIG.PULSE_DECAY * dt);
+    const ease = 1 - Math.exp(-CONFIG.BEND_EASE * dt);
     for (const c of list) {
       c.pulse *= k;
       c.fault *= k;
+      let tx = c.rx1;
+      let ty = c.ry1;
+      if (surge.bend > 0.001) {
+        const dx = surge.x - c.rx1;
+        const dy = surge.y - c.ry1;
+        const dist = Math.hypot(dx, dy) || 1;
+        // Capped at a share of the conduit's own length: pulled further, the curve
+        // folds back on itself near an end and reads as a glitch, not a bend.
+        const pull = Math.min(dist * surge.bend / (1 + dist / CONFIG.BEND_FALLOFF), c.len * CONFIG.BEND_MAX);
+        tx += (dx / dist) * pull;
+        ty += (dy / dist) * pull;
+      }
+      c.x1 += (tx - c.x1) * ease;
+      c.y1 += (ty - c.y1) * ease;
     }
   }
 
@@ -116,14 +140,14 @@ export function createConduits(ringIds) {
     ctx.lineWidth = 1;
     ctx.strokeStyle = PALETTE.bone;
 
-    ctx.globalAlpha = CONFIG.BASE_ALPHA;
+    ctx.globalAlpha = CONFIG.BASE_ALPHA + CONFIG.SURGE_ALPHA * energy;
     ctx.beginPath();
     for (const c of list) trace(ctx, c);
     ctx.stroke();
 
     ctx.setLineDash(DASH);
     ctx.lineDashOffset = -flow;
-    ctx.globalAlpha = CONFIG.FLOW_ALPHA;
+    ctx.globalAlpha = CONFIG.FLOW_ALPHA + CONFIG.SURGE_ALPHA * energy;
     ctx.beginPath();
     for (const c of list) trace(ctx, c);
     ctx.stroke();

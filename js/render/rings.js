@@ -26,6 +26,8 @@ const CONFIG = {
   HIST_RECENT: 60,    // newest N frames are drawn brighter
   HIST_LEN: 0.8,      // full tick length as a share of the gap to the next ring
 
+  ENERGY_SPIN: 5,     // ring speed multiplier added at full surge energy
+  WHEEL_GEAR: 0.6,    // share of wheel spin passed to the innermost ring; outer rings get less
   FLASH_DECAY: 2.5,   // per second
   FLASH_ALPHA: 0.75,
   FLASH_WIDTH: 1.5,
@@ -41,10 +43,15 @@ export function createRings(channels) {
   const flashA = new Float32Array(count);
   const faultA = new Float32Array(count);
 
-  function update(dt, motion) {
+  // surge.energy speeds every ring up; surge.spin (wheel) drives them hard, alternating
+  // direction ring to ring like a gear train.
+  function update(dt, motion, surge) {
     const k = Math.exp(-CONFIG.FLASH_DECAY * dt);
+    const boost = 1 + CONFIG.ENERGY_SPIN * surge.energy;
     for (let i = 0; i < count; i++) {
-      angle[i] = (angle[i] + CONFIG.STYLES[i].speed * dt * motion) % TAU;
+      const sp = CONFIG.STYLES[i].speed;
+      const gear = sp === 0 ? 0 : Math.sign(sp) * CONFIG.WHEEL_GEAR / (1 + i * 0.15);
+      angle[i] = (angle[i] + (sp * boost + surge.spin * gear) * dt * motion) % TAU;
       flashA[i] *= k;
       faultA[i] *= k;
     }

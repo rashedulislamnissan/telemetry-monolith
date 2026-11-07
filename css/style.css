@@ -41,6 +41,11 @@ body {
   -webkit-user-select: none;
 }
 
+/* The canvas draws its own reticle for mice; touch devices never show a cursor anyway. */
+@media (pointer: fine) {
+  #stage { cursor: none; }
+}
+
 /* Padding is subtracted from the edge so the text itself lines up with the canvas margin. */
 .backlink {
   position: fixed;
