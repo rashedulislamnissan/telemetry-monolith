@@ -6,6 +6,7 @@ const CONFIG = {
   PAD_X: 4,     // knockout padding around the text
   PAD_Y: 2,
   GAP: 0.6,     // space between name and value, in multiples of the font size
+  NA_ALPHA: 0.55,
 };
 
 export function createLabels(heap, rings) {
@@ -27,10 +28,14 @@ export function createLabels(heap, rings) {
     ctx.fillStyle = PALETTE.void;
     ctx.fillRect(x0 - CONFIG.PAD_X, Math.round(y - boxH / 2), total + CONFIG.PAD_X * 2, boxH);
 
+    // Unsupported channels are dimmed as a whole so the N/A reads as absence, not as a value.
+    const na = ch.status === 'unsupported';
+    ctx.globalAlpha = na ? CONFIG.NA_ALPHA : 1;
     ctx.fillStyle = PALETTE.ash;
     ctx.fillText(ch.name, x0, y);
-    ctx.fillStyle = ch.live ? PALETTE.sodium : PALETTE.ash;
+    ctx.fillStyle = na ? PALETTE.ash : ch.fault ? PALETTE.fault : ch.live ? PALETTE.sodium : PALETTE.ash;
     ctx.fillText(ch.value, x0 + nw + gap, y);
+    ctx.globalAlpha = 1;
   }
 
   function draw(ctx, L) {

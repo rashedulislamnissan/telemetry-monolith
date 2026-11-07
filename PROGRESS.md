@@ -1,8 +1,22 @@
 # Progress
 
 ## Status
-- **Done:** M1, look and skeleton
-- **Next:** M2, real signal bus
+- **Done:** M1 look and skeleton, M2 real signal bus
+- **Next:** M3, particles and conduits driven by the bus
+
+## M2: real signal bus (done)
+- `js/signals/bus.js`: one bus. Pooled 512-slot event history, per-type throttle (throttled counts are kept and shown in the debug log), per-channel status: `waiting`, `live`, `fallback`, `unsupported`, `error`.
+- Event shape: `{seq, ch, type, label, readout, value, unit, t, fault, raw}`. `raw` is a plain snapshot (`PerformanceEntry.toJSON()` with DOM nodes reduced to names), so tooltips in M6 can show it later.
+- One module per source: `frame`, `longtask`, `paint` (FP/FCP, LCP, layout-shift/CLS), `resource`, `interaction` (Event Timing, falling back to pointer timestamps), `heap`, `ping`, `pointer` (velocity/accel/jerk + press + wheel), `mutation`, `device`, `visibility`.
+- Rings now show the latest real readout per channel. Unsupported channels show **N/A**, the ring is drawn as a bare Graphite circle with no ticks, and the device panel carries one footnote: "N/A = NOT EXPOSED BY THIS BROWSER".
+- Top-right device panel: CPU threads, device memory, real DPR (and the capped render DPR), viewport, network type + RTT.
+- `?debug` in the URL shows a status table and the latest 36 events. It is `data-self`, so the mutation source ignores it.
+- `ping.txt` added; the page declares an empty favicon so browsers do not make a stray `/favicon.ico` request.
+
+### Checks run (Playwright: Chromium 156, Firefox 157, WebKit 27.2)
+- **Chromium:** every channel live: frame, paint (FP/FCP/LCP/CLS), resource, interaction, heap, ping, input, mutation, device. A 120 ms `setTimeout` busy loop produced `LONGTASK 120MS` plus a `FRAME DROP`.
+- **Firefox and WebKit:** longtask = N/A, heap = N/A, layout-shift listed as not exposed (paint stays live through FP/FCP/LCP), device memory and network = N/A. Everything else is live.
+- Zero console errors or warnings in all three engines. M1 checks re-run: 60 fps, DPR cap, resize all still pass.
 
 ## M1: look and skeleton (done)
 - Full-screen canvas with a fixed-timestep loop (1/120 s step, accumulator, 0.25 s clamp), resize handling, DPR capped at 2, DPR-change watcher, pause on hidden tab.
@@ -25,13 +39,20 @@
 - **FRAME readout** is an exponential moving average (alpha 0.08) of real rAF deltas, refreshed 5 times a second so it is readable.
 - **Reduced motion:** decorative rotation and scroll run at 25% speed, and the type shimmer is off.
 
+- **N/A display:** rings show a short "N/A"; the full sentence appears once as a footnote under the device panel (it was too long for the label spine on phones).
+- **Interaction channel** reports one event per real interaction (`interactionId`), not every hover entry. Event Timing only reports events of 16 ms or more, by spec, so quick taps may not appear there; the input channel still records every press.
+- **Ping is excluded from the resource channel** so one request is not shown as two events.
+- **Heap:** Chromium quantises `performance.memory` (headless reported exactly 10,000,000 bytes). It is shown as reported, with a note in the channel status.
+- **Mutations:** the canvas resize (`CANVAS[width]`, `CANVAS[height]`) and the back-link `href` at boot are counted, because they are real DOM changes. Only `data-self` nodes are ignored.
+
 ## Known issues
 - Headless frame timing is idealised. The 60 fps check still needs a look in a real Chrome window on a mid-range laptop.
-- The spec's N/A text ("N/A: NOT EXPOSED BY THIS BROWSER") is long for the centred label spine on narrow screens. Decide how to show it in M2.
-- Dev note: Playwright's Chromium needs `--no-proxy-server` in this environment to reach the local server.
+- Visibility events are wired but not covered by automated tests, because headless browsers do not fire `visibilitychange`. Check by switching tabs with `?debug` open.
+- Test harness note: Chrome does not count DevTools `evaluate()` calls as long tasks; trigger test long tasks from a `setTimeout` inside the page.
+- Dev note: Playwright needs `--no-proxy-server` (Chromium) and `network.proxy.type = 0` (Firefox) in this environment to reach the local server.
 
-## Next steps (M2)
-- `js/signals/bus.js` plus one module per source in the signal map, each emitting `{type, label, value, t, raw}`.
-- Feature-detect each API (`PerformanceObserver.supportedEntryTypes`, `performance.memory`, `navigator.connection`, etc.) and report "unsupported" honestly.
-- A debug log (behind a query flag) showing live events per source.
-- Add `ping.txt`.
+## Next steps (M3)
+- Pooled particle system with a hard cap, fed by bus events. Each particle carries a copy of its event (label + raw).
+- Conduits: vector paths from the screen edge (resource), core (heap) and rings to the label spine. Particles travel along them.
+- Monospace labels on particles showing the real event label. No decorative particle ever carries a label.
+- Core size follows the real heap where exposed. Long tasks give a red burst.

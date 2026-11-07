@@ -62,6 +62,29 @@ body {
   color: var(--bone);
 }
 
+/* ?debug only. Click-through so it never blocks the canvas. Anchored at the top so
+   growing content extends downward: a bottom anchor moves the box on every update,
+   which the browser rightly reports as a layout shift. */
+.debug {
+  position: fixed;
+  left: 8px;
+  top: 96px;
+  max-width: min(760px, calc(100vw - 16px));
+  max-height: 70vh;
+  overflow: hidden;
+  padding: 8px 10px;
+  background: rgba(0, 0, 0, 0.82);
+  border: 1px solid var(--graphite);
+  pointer-events: none;
+}
+
+.debug pre {
+  margin: 0;
+  color: var(--bone);
+  font: 400 10px/1.35 var(--mono);
+  white-space: pre;
+}
+
 .fallback {
   position: fixed;
   inset: 0;

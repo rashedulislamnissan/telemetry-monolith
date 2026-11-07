@@ -20,7 +20,7 @@ ES modules do not load from `file://`, so serve the folder:
 python -m http.server 8000
 ```
 
-Then open http://localhost:8000.
+Then open http://localhost:8000. Add `?debug` to the URL to see each signal's support status and the live event log.
 
 ## Personal details
 Name, role and links are placeholders in [`config.js`](./config.js).

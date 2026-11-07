@@ -27,8 +27,12 @@ const CONFIG = {
   HIST_LEN: 0.8,      // full tick length as a share of the gap to the next ring
 };
 
-export function createRings(count) {
+export function createRings(channels) {
+  const count = channels.length;
   const angle = new Float32Array(count);
+  // An unsupported channel's ring is drawn as a bare Graphite circle with no ticks:
+  // visibly present, visibly empty.
+  const dim = (i) => channels[i].status === 'unsupported';
 
   function update(dt, motion) {
     for (let i = 0; i < count; i++) {
@@ -41,10 +45,24 @@ export function createRings(count) {
     ctx.strokeStyle = PALETTE.bone;
     ctx.lineWidth = 1;
 
-    // Ring arcs, all in one path.
+    // Dimmed (N/A) rings first, as plain full circles.
+    ctx.strokeStyle = PALETTE.graphite;
+    ctx.globalAlpha = 1;
+    ctx.beginPath();
+    for (let i = 0; i < count; i++) {
+      if (!dim(i)) continue;
+      const r = L.ringR[i];
+      ctx.moveTo(cx + r, cy);
+      ctx.arc(cx, cy, r, 0, TAU);
+    }
+    ctx.stroke();
+
+    // Live ring arcs, all in one path.
+    ctx.strokeStyle = PALETTE.bone;
     ctx.globalAlpha = CONFIG.ARC_ALPHA;
     ctx.beginPath();
     for (let i = 0; i < count; i++) {
+      if (dim(i)) continue;
       const r = L.ringR[i];
       const s = CONFIG.STYLES[i];
       if (s.segs === 0) {
@@ -68,7 +86,7 @@ export function createRings(count) {
       ctx.beginPath();
       for (let i = 0; i < count; i++) {
         const s = CONFIG.STYLES[i];
-        if (s.ticks === 0) continue;
+        if (s.ticks === 0 || dim(i)) continue;
         const r = L.ringR[i];
         const len = major ? s.len * CONFIG.MAJOR_LEN : s.len;
         const step = TAU / s.ticks;

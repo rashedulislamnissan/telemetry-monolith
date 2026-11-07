@@ -1,20 +1,23 @@
 // Boot, main loop and resize. Simulation runs on a fixed timestep; rendering runs once per rAF.
 import { OWNER } from '../config.js';
 import { createLayout, computeLayout } from './layout.js';
-import { HEAP, RING_CHANNELS, byId, setValue } from './channels.js';
+import { HEAP, RING_CHANNELS, byId, setValue, NA } from './channels.js';
+import { createBus, STATUS } from './signals/bus.js';
+import { startSignals } from './signals/index.js';
 import { FrameClock } from './signals/frame.js';
+import { startDebug } from './debug.js';
 import { createGrid } from './render/grid.js';
 import { createType } from './render/type.js';
 import { createRings } from './render/rings.js';
 import { createCore } from './render/core.js';
 import { createLabels } from './render/labels.js';
 import { createHud } from './render/hud.js';
+import { createDevicePanel } from './render/device.js';
 
 const CONFIG = {
   MAX_DPR: 2,          // above 2 the fill cost grows faster than anyone can see the difference
   STEP: 1 / 120,       // fixed sim step; 120 Hz keeps motion smooth on high-refresh screens
   MAX_FRAME: 0.25,     // s; clamp long gaps (debugger, tab thaw) so the sim cannot spiral
-  VALUE_HZ: 5,         // numeric readout refresh rate; faster just flickers
   REDUCED_MOTION: 0.25 // speed multiplier for decorative motion under prefers-reduced-motion
 };
 
@@ -34,23 +37,42 @@ function boot() {
     return;
   }
 
-  const back = document.getElementById('backlink');
-  if (back) back.href = OWNER.portfolioUrl;
-
   const L = createLayout(RING_CHANNELS.length);
   const clock = new FrameClock();
+  const bus = createBus();
   const grid = createGrid();
   const type = createType();
-  const rings = createRings(RING_CHANNELS.length);
+  const rings = createRings(RING_CHANNELS);
   const core = createCore();
   const labels = createLabels(HEAP, RING_CHANNELS);
   const hud = createHud();
-  const frameCh = byId('frame');
+  const devicePanel = createDevicePanel();
+
+  // Channel readouts follow the bus: latest event wins; status decides N/A.
+  let naCount = 0;
+  bus.on((e) => {
+    const ch = byId(e.ch);
+    if (ch && ch.status !== STATUS.UNSUPPORTED) setValue(ch, e.readout, true, e.fault);
+  });
+  bus.onStatus((id, st) => {
+    const ch = byId(id);
+    if (!ch) return;
+    ch.status = st.state;
+    if (st.state === STATUS.UNSUPPORTED) setValue(ch, NA, false);
+    naCount = 0;
+    if (HEAP.status === STATUS.UNSUPPORTED) naCount++;
+    for (const c of RING_CHANNELS) if (c.status === STATUS.UNSUPPORTED) naCount++;
+  });
+
+  startDebug(bus);
+  const signals = startSignals(bus, clock);
+
+  const back = document.getElementById('backlink');
+  if (back) back.href = OWNER.portfolioUrl;
 
   let raf = 0;
   let acc = 0;
   let simT = 0;
-  let nextValue = 0;
 
   function resize() {
     const dpr = Math.min(window.devicePixelRatio || 1, CONFIG.MAX_DPR);
@@ -89,6 +111,7 @@ function boot() {
     core.draw(ctx, L);
     labels.draw(ctx, L);
     hud.draw(ctx, L, now);
+    devicePanel.draw(ctx, L, naCount > 0);
   }
 
   function frame(now) {
@@ -98,10 +121,6 @@ function boot() {
     while (acc >= CONFIG.STEP) {
       update(CONFIG.STEP);
       acc -= CONFIG.STEP;
-    }
-    if (now >= nextValue && clock.count > 0) {
-      setValue(frameCh, `${clock.smoothed.toFixed(1)}MS`);
-      nextValue = now + 1000 / CONFIG.VALUE_HZ;
     }
     render(now);
   }
@@ -121,8 +140,13 @@ function boot() {
   window.addEventListener('resize', resize);
   reduced.addEventListener('change', applyMotion);
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) stop();
-    else start();
+    if (document.hidden) {
+      stop();
+      signals.pause();
+    } else {
+      signals.resume();
+      start();
+    }
   });
 
   applyMotion();
