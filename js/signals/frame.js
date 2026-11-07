@@ -57,7 +57,9 @@ export class FrameClock {
     }
     if (now >= this.nextSample) {
       this.nextSample = now + CONFIG.SAMPLE_MS;
-      const ms = this.smoothed.toFixed(1);
+      // Two decimals: real frames jitter by hundredths (16.65, 16.71...); one decimal
+      // rounds that away and makes a live reading look frozen.
+      const ms = this.smoothed.toFixed(2);
       bus.emit({
         ch: 'frame', type: 'frame', label: `FRAME ${ms}MS`, readout: `${ms}MS`,
         value: this.smoothed, unit: 'ms', t: now,

@@ -34,7 +34,9 @@ export function createDevicePanel() {
 
   function rebuild(ctx) {
     ROWS[0].value = device.threads === null ? CONFIG.NA : String(device.threads);
-    ROWS[1].value = device.memoryGB === null ? CONFIG.NA : `${device.memoryGB} GB`;
+    // navigator.deviceMemory is rounded down and capped by the browser (privacy), so it
+    // is a lower bound: a 16 GB machine can report 8.
+    ROWS[1].value = device.memoryGB === null ? CONFIG.NA : `≥${device.memoryGB} GB`;
     // Shows the real DPR, and the capped render DPR when they differ.
     ROWS[2].value = device.dpr === device.renderDpr
       ? device.dpr.toFixed(2)

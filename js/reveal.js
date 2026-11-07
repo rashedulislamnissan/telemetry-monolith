@@ -18,7 +18,7 @@ const CONFIG = {
   BLOCK_H: 190,          // px the block needs below the rings
   TIP_OFFSET: 18,        // px from the particle to the tooltip
   TIP_ROWS: 16,          // raw fields shown; the rest are summarised as "+N more"
-  VALUE_MAX: 44,         // characters per value before it is clipped
+  VALUE_MAX: 56,         // characters per value before it is clipped (fits the heap note)
 };
 
 // ---- formatting (shared by stream and tooltip) ----
@@ -46,7 +46,7 @@ function fmtValue(k, v) {
 }
 
 const PRIORITY = [
-  'name', 'url', 'entryType', 'source', 'initiatorType', 'startTime', 'duration',
+  'name', 'url', 'entryType', 'source', 'note', 'initiatorType', 'startTime', 'duration',
   'transferSize', 'encodedBodySize', 'decodedBodySize', 'responseStatus', 'status',
   'renderTime', 'loadTime', 'size', 'element', 'value', 'hadRecentInput', 'cumulative',
   'processingStart', 'processingEnd', 'inputDelay', 'interactionId',

@@ -5,6 +5,9 @@ import { fmtBytes } from './support.js';
 const CONFIG = {
   POLL_MS: 1000,
   GC_DROP: 256 * 1024, // bytes; a fall bigger than this between polls is reported as GC
+  // Shown in the tooltip, so nobody reads the coarse value as a precise live heap.
+  // Precise memory needs cross-origin isolation headers, which GitHub Pages cannot send.
+  NOTE: 'Rounded and rarely updated by the browser for privacy',
 };
 
 // Latest reading, for renderers (core size in M3). null = not exposed.
@@ -25,7 +28,7 @@ export function startHeap(bus) {
     const used = mem.usedJSHeapSize;
     const t = performance.now();
     const raw = {
-      source: 'performance.memory', usedJSHeapSize: used,
+      source: 'performance.memory', note: CONFIG.NOTE, usedJSHeapSize: used,
       totalJSHeapSize: mem.totalJSHeapSize, jsHeapSizeLimit: mem.jsHeapSizeLimit,
     };
     heapState.used = used;
@@ -35,12 +38,12 @@ export function startHeap(bus) {
     if (prev && prev - used > CONFIG.GC_DROP) {
       const drop = prev - used;
       bus.emit({
-        ch: 'heap', type: 'gc', label: `GC -${fmtBytes(drop)}`, readout: fmtBytes(used),
+        ch: 'heap', type: 'gc', label: `GC -${fmtBytes(drop)}`, readout: `≈${fmtBytes(used)}`,
         value: -drop, unit: 'bytes', t, raw: Object.assign({ previousUsed: prev }, raw),
       });
     } else {
       bus.emit({
-        ch: 'heap', type: 'heap', label: `HEAP ${fmtBytes(used)}`, readout: fmtBytes(used),
+        ch: 'heap', type: 'heap', label: `HEAP ≈${fmtBytes(used)}`, readout: `≈${fmtBytes(used)}`,
         value: used, unit: 'bytes', t, raw,
       });
     }

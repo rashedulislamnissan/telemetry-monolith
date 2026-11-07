@@ -166,3 +166,11 @@
 - Record the demo GIF (`docs/demo.gif`) and push it.
 - Real Safari (macOS/iOS) and real-phone check by hand; listen to the hum.
 - Next project in the build order: Tearable Swiss Poster (Netlify).
+
+## Post-launch fix: honest readouts that do not look frozen (owner feedback)
+- **Problem:** on an idle page only POINTER/WHEEL and PING changed. Every other ring froze on its last value, and device memory read "8 GB" on a 16 GB machine.
+- **Quiet rings now tick:** longtask, interaction, mutation, resource, paint and input show how long they have been quiet once 4 s pass without an event: `NONE FOR 2:31`, `38 FILES, LAST 2:31 AGO`, `LCP 8.79S, 0:05 AGO`, `5 CHANGES, 0:13 AGO`. These are real elapsed times since a real event (or since load).
+- **Frame time** shows two decimals (16.66 / 16.67…); one decimal rounded the real jitter away.
+- **Device memory** shows `≥8 GB`: `navigator.deviceMemory` is rounded down and capped by the browser for privacy, so it is a lower bound.
+- **Heap** shows `≈9.5MB`, and its raw data carries a note: "Rounded and rarely updated by the browser for privacy". Chrome gives pages a coarse, rarely-updated `performance.memory`; precise memory needs cross-origin isolation headers that GitHub Pages cannot send.
+- Checked: ring readouts change over 2 s while idle in Chromium, Firefox and WebKit (0 errors); M3 audit (0 mismatches) and M6 tooltip comparison still pass.

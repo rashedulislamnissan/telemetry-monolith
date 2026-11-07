@@ -7,8 +7,13 @@
 export const DASH = '—';
 export const NA = 'N/A';
 
+// lastAt / lastReadout / events track the most recent real event, so a quiet channel
+// can say how long it has been quiet instead of looking frozen.
 function channel(id, name) {
-  return { id, name, value: DASH, live: false, fault: false, status: 'waiting', valueW: -1 };
+  return {
+    id, name, value: DASH, live: false, fault: false, status: 'waiting', valueW: -1,
+    lastAt: 0, lastReadout: '', events: 0,
+  };
 }
 
 // The core itself is the heap channel.

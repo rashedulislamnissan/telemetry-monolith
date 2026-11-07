@@ -36,6 +36,35 @@ const CONFIG = {
 // Event types that arrive on a timer rather than because something happened.
 const SAMPLE_TYPES = new Set(['frame', 'heap', 'ping']);
 
+// Channels that only report when something happens. Once quiet, their readout says for
+// how long (a real, ticking measurement) instead of freezing on the last value.
+// 'files' shows a running count; 'last' shows the last readout plus its age.
+const QUIET = [['longtask', 'last'], ['interaction', 'last'], ['mutation', 'last'], ['resource', 'files'], ['paint', 'last'], ['input', 'last']];
+const QUIET_MS = 4000;   // a fresh event shows on its own for this long before the age appears
+
+function fmtAge(ms) {
+  const s = Math.floor(ms / 1000);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const ss = String(s % 60).padStart(2, '0');
+  return h ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${m}:${ss}`;
+}
+
+function updateQuiet(now) {
+  for (const [id, mode] of QUIET) {
+    const ch = byId(id);
+    if (!ch || ch.status === STATUS.UNSUPPORTED) continue;
+    const since = ch.events ? now - ch.lastAt : now;
+    if (ch.events && since < QUIET_MS) continue;
+    const age = fmtAge(since);
+    let text;
+    if (!ch.events) text = `NONE FOR ${age}`;
+    else if (mode === 'files') text = `${ch.events} FILES, LAST ${age} AGO`;
+    else text = `${ch.lastReadout}, ${age} AGO`;
+    setValue(ch, text, true, false);
+  }
+}
+
 function showFallback(message) {
   const box = document.getElementById('fallback');
   const msg = document.getElementById('fallback-msg');
@@ -84,7 +113,12 @@ function boot() {
   let naCount = 0;
   bus.on((e) => {
     const ch = byId(e.ch);
-    if (ch && ch.status !== STATUS.UNSUPPORTED) setValue(ch, e.readout, true, e.fault);
+    if (ch && ch.status !== STATUS.UNSUPPORTED) {
+      setValue(ch, e.readout, true, e.fault);
+      ch.lastAt = performance.now();
+      ch.lastReadout = e.readout;
+      ch.events++;
+    }
     particles.spawn(e, L.motion);
     if (e.ch === 'input') {
       if (e.type === 'wheel') surge.onWheel(e.value);
@@ -143,6 +177,7 @@ function boot() {
     window.__audio = audio.state;
     window.__reveal = reveal.state;
     window.__quality = quality.state;
+    window.__channels = [HEAP, ...RING_CHANNELS];
   }
   const signals = startSignals(bus, clock);
 
@@ -155,6 +190,7 @@ function boot() {
   let raf = 0;
   let acc = 0;
   let simT = 0;
+  let nextQuiet = 0;
 
   function resize() {
     const dpr = Math.min(window.devicePixelRatio || 1, CONFIG.MAX_DPR, quality.state.settings.dpr);
@@ -227,6 +263,10 @@ function boot() {
     }
     audio.update(surge.state.energy, now);
     reveal.update(now, L);
+    if (now >= nextQuiet) {
+      nextQuiet = now + 1000;
+      updateQuiet(performance.now());
+    }
     render(now);
   }
 
