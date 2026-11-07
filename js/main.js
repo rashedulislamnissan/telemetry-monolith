@@ -19,6 +19,7 @@ import { createEffects } from './render/effects.js';
 import { createGauges } from './render/gauges.js';
 import { drawReticle } from './render/reticle.js';
 import { createSurge } from './surge.js';
+import { createAudio } from './audio.js';
 
 const CONFIG = {
   MAX_DPR: 2,          // above 2 the fill cost grows faster than anyone can see the difference
@@ -63,6 +64,8 @@ function boot() {
   const effects = createEffects();
   const surge = createSurge();
   const gauges = createGauges();
+  const audio = createAudio(document.getElementById('mute'));
+  audio.render();
 
   // Channel readouts follow the bus: latest event wins; status decides N/A.
   // Every event also becomes one particle. Real input events also drive the surge.
@@ -76,6 +79,7 @@ function boot() {
       else if (e.type === 'pointerdown' && e.raw) {
         surge.onPress();
         effects.press(e.raw.x, e.raw.y, L.motion);
+        audio.click();
       }
     }
   });
@@ -99,9 +103,11 @@ function boot() {
       case 'longtask':
         core.pulse(0.8 * amp, true);
         if (full) effects.wave(L.coreR, L.R * 1.25, 0.8, true, 3);
+        audio.thud();
         break;
       case 'ping':
         if (full) effects.wave(L.ringR[c.ring], L.ringR[c.ring] + L.ringGap * 1.6, 0.6, p.fault, 1, p.fault ? 1 : 0.4);
+        if (!p.fault) audio.tick();
         break;
       default:
         break;
@@ -122,6 +128,7 @@ function boot() {
     window.__particles = particles;
     window.__surge = surge.state;
     window.__conduits = conduits.list;
+    window.__audio = audio.state;
   }
   const signals = startSignals(bus, clock);
 
@@ -190,6 +197,7 @@ function boot() {
       update(CONFIG.STEP);
       acc -= CONFIG.STEP;
     }
+    audio.update(surge.state.energy, now);
     render(now);
   }
 

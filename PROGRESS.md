@@ -1,8 +1,27 @@
 # Progress
 
 ## Status
-- **Done:** M1 look and skeleton, M2 real signal bus, M3 particles and conduits, M4 interaction surge
-- **Next:** M5, procedural sound
+- **Done:** M1 look and skeleton, M2 real signal bus, M3 particles and conduits, M4 interaction surge, M5 procedural sound
+- **Next:** M6, the 10 s reveal
+
+## M5: procedural sound (done)
+- `js/audio-engine.js`: the graph only. It runs on any BaseAudioContext (live or offline), and every method takes an explicit time so it can be rendered and measured offline.
+  - **Hum:** two sawtooths at 55 Hz detuned by 7 cents each way, plus an octave sine, through a resonant lowpass with a 0.11 Hz breathing LFO.
+  - **Noise:** looped white noise through a bandpass.
+  - **Gear:** a fifth fades in only at high energy.
+  - **Energy response:** surge energy opens the filter (200 to 2200 Hz), raises drone and noise, moves the noise band and lifts pitch 4%.
+  - **Master:** 0.16 into a compressor.
+- **Real-event sounds:** long task = low falling thud; each ping = barely audible 1760 Hz tick; press = short high-passed noise click. Thud and tick fire on particle arrival, so they sync with the visuals.
+- **No clicks:** every change is a `setTargetAtTime` or linear ramp. One-shot voices stop only after decaying to e^-9 of peak. Hiding the tab ducks to silence, then suspends after 300 ms; showing it resumes, then ramps up.
+- `js/audio.js`: no AudioContext exists until a real gesture (pointerdown/up, keydown, click, touchend), so the page is silent before one. Visible "Sound on (M)" button (`aria-pressed`, `data-self`) and the M key; the preference is saved in localStorage. Without Web Audio the button shows "Sound N/A" and is disabled.
+- **Fix in particles:** startup now loads ~37 files, which overflowed the 4 s conduit queue at a fixed 0.12 s spacing (2 resource events dropped). Spacing now tightens as the queue grows (to a 0.03 s floor), so long bursts compress instead of dropping. This also fixes the 4 WebKit phone drops noted in M3.
+
+### Checks run
+- **Silent until a gesture** (Chromium with `--autoplay-policy=user-gesture-required`, and Firefox): no AudioContext after load or after hovering; context `running` after the first click.
+- **Mute:** M sets muted with label "Sound off (M)" and `aria-pressed=false`; the button unmutes; muted state survives a reload.
+- **WebKit (Playwright's Windows build has no Web Audio):** "Sound N/A", disabled, M does nothing, no errors.
+- **No clicks or pops (offline render of the real engine):** a pop is a waveform step, so each region's peak second-difference is compared with the steady hum's (which already contains the saw edges). Start 0.01x, energy jump 0.55x, mute 0.88x, unmute 1.21x, thud 1.14x, tick 1.08x, duck 1.14x. A control render with a deliberate hard cut reads **2.51x**, so the detector does catch pops. Peak sample level is 0.157 (no clipping).
+- Regressions: M3 audit 0 mismatches and spawned = bus events (0 dropped) in all engines and sizes; M4 0 frames over 25 ms; no console errors anywhere.
 
 ## M4: interaction surge (done)
 - `js/surge.js`: one `energy` value (0-1) driven only by real input: cursor speed (log scale, full at 3000 px/s), wheel px and presses. Fast attack, ~0.6 s release. Also `spin` (wheel, signed) and `bend`. M5 will read `energy` for the hum.
@@ -76,13 +95,15 @@
 - **Mutations:** the canvas resize (`CANVAS[width]`, `CANVAS[height]`) and the back-link `href` at boot are counted, because they are real DOM changes. Only `data-self` nodes are ignored.
 
 ## Known issues
-- Headless WebKit on Windows renders in software and misses frames at 3x DPR. Each miss is a real `FRAME DROP` event, so the frame conduit backlog exceeded 4 s and 4 events were dropped (counted, not hidden). M7's adaptive quality should lower render cost when frames drop; consider also folding a run of drops into one event.
+- Headless WebKit on Windows renders in software and misses frames at 3x DPR. The queue overflow this caused in M3 is fixed (spacing now compresses), but M7's adaptive quality should still lower render cost when frames drop.
+- Audio is not covered by any listening test. Check by ear in a real browser: hum level, the thud on a long task (trigger one from devtools with a busy loop), and switching tabs (should fade, not cut).
 - Headless frame timing is idealised. The 60 fps check still needs a look in a real Chrome window on a mid-range laptop.
 - Visibility events are wired but not covered by automated tests, because headless browsers do not fire `visibilitychange`. Check by switching tabs with `?debug` open.
 - Test harness note: Chrome does not count DevTools `evaluate()` calls as long tasks; trigger test long tasks from a `setTimeout` inside the page.
 - Dev note: Playwright needs `--no-proxy-server` (Chromium) and `network.proxy.type = 0` (Firefox) in this environment to reach the local server.
 
-## Next steps (M5)
-- `js/audio.js`: Web Audio hum. A few detuned oscillators plus filtered noise; gain and filter cutoff follow `surge.energy`; soft clicks or blips on real faults (long task) kept subtle.
-- Create the AudioContext only on the first user gesture; ramp every parameter change (no clicks or pops); keep master volume low.
-- Visible mute toggle plus the `M` key. Suspend audio while the tab is hidden.
+## Next steps (M6)
+- `js/reveal.js`: the caption "EVERY PARTICLE IS A REAL BROWSER EVENT." fades in at about 8-10 s (one orchestrated moment).
+- Hover or tap a particle: freeze it (copy its slot so it survives pool reuse) and show its raw event data in a tooltip (`data-self`).
+- Raw stream panel (bottom-left, `data-self`) scrolling real PerformanceEntry data from the bus history.
+- Check: a first-time viewer can tell the data is real within 10 s; tooltip data matches the browser's actual entries (compare with `performance.getEntries()`).

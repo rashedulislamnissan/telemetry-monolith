@@ -46,22 +46,38 @@ body {
   #stage { cursor: none; }
 }
 
-/* Padding is subtracted from the edge so the text itself lines up with the canvas margin. */
-.backlink {
+/* Bottom-right controls. Padding is subtracted from the edge so the text itself lines
+   up with the canvas margin. */
+.corner {
   position: fixed;
   right: calc(var(--edge) - 8px + env(safe-area-inset-right, 0px));
   bottom: calc(var(--edge) - 6px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.backlink,
+.mute {
   padding: 6px 8px;
+  background: none;
+  border: 0;
   color: var(--ash);
-  font-size: 10px;
+  font: 400 10px/1.4 var(--mono);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   text-decoration: none;
+  cursor: pointer;
 }
 
-.backlink:hover { color: var(--bone); }
+.mute[aria-pressed="true"] { color: var(--bone); }
+.mute:disabled { cursor: default; opacity: 0.6; }
 
-.backlink:focus-visible {
+.backlink:hover,
+.mute:hover:not(:disabled) { color: var(--bone); }
+
+.backlink:focus-visible,
+.mute:focus-visible {
   outline: 1px solid var(--sodium);
   outline-offset: 0;
   color: var(--bone);

@@ -10,6 +10,7 @@ const CONFIG = {
   DUR_MIN: 0.9,        // s, travel time clamp so short and long conduits both read
   DUR_MAX: 2.4,
   SPACING: 0.12,       // s between particles entering the same conduit; bursts become a stream
+  SPACING_MIN: 0.03,   // s; floor once the queue is long
   MAX_DELAY: 4,        // s of queue per conduit; beyond this an event is counted as dropped
   LAND: 2.4,           // s on the ring after arrival
   LAND_SWEEP: 0.45,    // rad a landed particle slides along its ring
@@ -82,7 +83,9 @@ export function createParticles(conduits) {
     if (delay > CONFIG.MAX_DELAY) { stats.dropped++; return; }
     const p = free();
     if (!p) { stats.dropped++; return; }
-    c.nextFree = now + delay + CONFIG.SPACING;
+    // Spacing tightens as the queue grows, so a long burst (the ~40 files at load)
+    // compresses into a denser stream instead of overflowing.
+    c.nextFree = now + delay + Math.max(CONFIG.SPACING_MIN, CONFIG.SPACING * (1 - delay / CONFIG.MAX_DELAY));
 
     const speed = CONFIG.SPEED * (motion < 1 ? CONFIG.REDUCED_SPEED : 1);
     p.active = true;

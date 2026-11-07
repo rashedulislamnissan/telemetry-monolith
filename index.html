@@ -13,7 +13,11 @@
 <body>
   <canvas id="stage" role="img" aria-label="Animated instrument display of orbital rings around a hexagonal core, drawn from this page's own browser telemetry."></canvas>
 
-  <a class="backlink" id="backlink" href="#">Portfolio</a>
+  <nav class="corner" aria-label="Page controls">
+    <!-- data-self: its text changes because of us, so the mutation source ignores it. -->
+    <button class="mute" id="mute" type="button" aria-pressed="true" aria-keyshortcuts="m" data-self>Sound on (M)</button>
+    <a class="backlink" id="backlink" href="#">Portfolio</a>
+  </nav>
 
   <div class="fallback" id="fallback" hidden>
     <p id="fallback-msg"></p>
