@@ -108,7 +108,7 @@ export function createType() {
 
   function draw(ctx, L, t) {
     // The shimmer is pure flicker, so reduced motion turns it off rather than slowing it.
-    const wave = L.motion >= 1;
+    const wave = L.motion >= 1 && L.shimmer;
     ctx.fillStyle = PALETTE.bone;
     drawPass(ctx, L, t, 0, wave);
     if (wave) drawPass(ctx, L, t, 1, wave);

@@ -40,5 +40,10 @@
   </noscript>
 
   <script type="module" src="./js/main.js"></script>
+  <!-- Browsers too old for ES modules run only this. -->
+  <script nomodule>
+    document.getElementById('fallback-msg').textContent = 'This page needs a browser with JavaScript modules. Try a current version of Chrome, Firefox or Safari.';
+    document.getElementById('fallback').hidden = false;
+  </script>
 </body>
 </html>

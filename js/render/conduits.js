@@ -136,7 +136,8 @@ export function createConduits(ringIds) {
     ctx.quadraticCurveTo(c.x1, c.y1, c.x2, c.y2);
   }
 
-  function draw(ctx) {
+  // flowOn: adaptive quality drops the dashed flow pass (dashed strokes are costly).
+  function draw(ctx, flowOn) {
     ctx.lineWidth = 1;
     ctx.strokeStyle = PALETTE.bone;
 
@@ -145,13 +146,15 @@ export function createConduits(ringIds) {
     for (const c of list) trace(ctx, c);
     ctx.stroke();
 
-    ctx.setLineDash(DASH);
-    ctx.lineDashOffset = -flow;
-    ctx.globalAlpha = CONFIG.FLOW_ALPHA + CONFIG.SURGE_ALPHA * energy;
-    ctx.beginPath();
-    for (const c of list) trace(ctx, c);
-    ctx.stroke();
-    ctx.setLineDash(NO_DASH);
+    if (flowOn) {
+      ctx.setLineDash(DASH);
+      ctx.lineDashOffset = -flow;
+      ctx.globalAlpha = CONFIG.FLOW_ALPHA + CONFIG.SURGE_ALPHA * energy;
+      ctx.beginPath();
+      for (const c of list) trace(ctx, c);
+      ctx.stroke();
+      ctx.setLineDash(NO_DASH);
+    }
 
     // Origin ports.
     ctx.globalAlpha = 0.7;

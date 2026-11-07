@@ -33,6 +33,8 @@ export function createLayout(ringCount) {
     typeH: 0,
     typeY: 0,
     motion: 1, // 1 = full motion, lower under prefers-reduced-motion
+    shimmer: true, // adaptive quality: kinetic type shimmer
+    flow: true,    // adaptive quality: conduit dash flow
   };
 }
 

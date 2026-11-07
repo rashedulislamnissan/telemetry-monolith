@@ -21,6 +21,7 @@ const CONFIG = {
   LABEL_PAD: 3,
   LABEL_LAND: 0.8,     // s a label stays after landing
   LABEL_EDGE: 6,       // px kept clear at the screen edge; labels flip sides to respect it
+  LABEL_MIN_DX: 80,    // px; labels on one conduit closer than a box height and this far apart would overlap
   REDUCED_SPEED: 0.6,  // travel speed multiplier under reduced motion
   HIT_MIN_ALPHA: 0.2,  // nearly faded particles cannot be picked
 };
@@ -65,12 +66,24 @@ export function createParticles(conduits) {
   let charW = 6;
   let onArrive = null;
 
+  // Last label drawn per conduit this frame (reused, never reallocated).
+  const lastLabelX = new Float32Array(conduits.list.length);
+  const lastLabelY = new Float32Array(conduits.list.length);
+
+  // Adaptive quality may lower these below the pool size.
+  const limits = { cap: CONFIG.MAX, labels: CONFIG.MAX_LABELS };
+
   function free() {
+    const full = stats.live >= limits.cap;
     let oldest = -1;
     let oldestAge = -1;
     for (let i = 0; i < CONFIG.MAX; i++) {
       const p = pool[i];
-      if (!p.active) return p;
+      if (!p.active) {
+        if (full) continue;
+        stats.live++;
+        return p;
+      }
       if (p.phase === 1 && !p.frozen && p.age > oldestAge) { oldestAge = p.age; oldest = i; }
     }
     // Pool full: recycle the most faded landed particle rather than block new data.
@@ -198,12 +211,19 @@ export function createParticles(conduits) {
     ctx.font = font;
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'left';
-    const floor = lastSeq - CONFIG.MAX_LABELS;
+    const floor = lastSeq - limits.labels;
     const h = L.labelPx + CONFIG.LABEL_PAD * 2;
     let labelled = 0;
+    lastLabelX.fill(-1e4);
+    lastLabelY.fill(-1e4);
     for (let i = 0; i < CONFIG.MAX; i++) {
       const p = pool[i];
       if (!p.active || p.delay > 0 || (p.seq <= floor && !p.frozen)) continue;
+      // Bursts (the ~40 files at load) put particles a few px apart on one conduit; their
+      // labels would stack into an unreadable pile. Skip a label that would overlap the last one; the rest
+      // still show as particles and still carry their data for hover.
+      const ci = p.conduit;
+      if (!p.frozen && Math.abs(p.y - lastLabelY[ci]) < h + 1 && Math.abs(p.x - lastLabelX[ci]) < CONFIG.LABEL_MIN_DX) continue;
       // Landed labels fade fast: the dot keeps riding the ring, but stacked labels on
       // one ring would be unreadable.
       const la = p.phase === 0 || p.frozen ? 1 : 1 - p.age / CONFIG.LABEL_LAND;
@@ -219,6 +239,8 @@ export function createParticles(conduits) {
       ctx.globalAlpha = la;
       ctx.fillStyle = p.fault ? PALETTE.fault : PALETTE.sodium;
       ctx.fillText(p.label, x, p.y);
+      lastLabelX[ci] = p.x;
+      lastLabelY[ci] = p.y;
       labelled++;
     }
     stats.labelled = labelled;
@@ -240,11 +262,17 @@ export function createParticles(conduits) {
     return best;
   }
 
+  function setLimits(cap, labels) {
+    limits.cap = Math.min(CONFIG.MAX, cap);
+    limits.labels = labels;
+  }
+
   return {
     spawn,
     update,
     draw,
     hit,
+    setLimits,
     stats,
     pool,
     set onArrive(fn) { onArrive = fn; },

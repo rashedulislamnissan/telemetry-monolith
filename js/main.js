@@ -21,6 +21,8 @@ import { drawReticle } from './render/reticle.js';
 import { createSurge } from './surge.js';
 import { createAudio } from './audio.js';
 import { createReveal } from './reveal.js';
+import { createQuality } from './quality.js';
+import { device } from './signals/device.js';
 
 const CONFIG = {
   MAX_DPR: 2,          // above 2 the fill cost grows faster than anyone can see the difference
@@ -68,6 +70,14 @@ function boot() {
   const audio = createAudio(document.getElementById('mute'));
   audio.render();
   const reveal = createReveal({ particles, bus, surge });
+  const quality = createQuality();
+
+  function applyQuality() {
+    const q = quality.state.settings;
+    particles.setLimits(q.particles, q.labels);
+    L.shimmer = q.shimmer;
+    L.flow = q.flow;
+  }
 
   // Channel readouts follow the bus: latest event wins; status decides N/A.
   // Every event also becomes one particle. Real input events also drive the surge.
@@ -132,18 +142,27 @@ function boot() {
     window.__conduits = conduits.list;
     window.__audio = audio.state;
     window.__reveal = reveal.state;
+    window.__quality = quality.state;
   }
   const signals = startSignals(bus, clock);
 
   const back = document.getElementById('backlink');
-  if (back) back.href = OWNER.portfolioUrl;
+  if (back) {
+    back.href = OWNER.portfolioUrl;
+    back.title = `Portfolio of ${OWNER.name}`;
+  }
 
   let raf = 0;
   let acc = 0;
   let simT = 0;
 
   function resize() {
-    const dpr = Math.min(window.devicePixelRatio || 1, CONFIG.MAX_DPR);
+    const dpr = Math.min(window.devicePixelRatio || 1, CONFIG.MAX_DPR, quality.state.settings.dpr);
+    // The device panel shows the real render scale, including any adaptive reduction.
+    if (device.renderDpr !== dpr) {
+      device.renderDpr = dpr;
+      device.version++;
+    }
     const w = window.innerWidth;
     const h = window.innerHeight;
     canvas.width = Math.round(w * dpr);
@@ -181,7 +200,7 @@ function boot() {
   function render(now) {
     grid.draw(ctx, L);
     type.draw(ctx, L, simT);
-    conduits.draw(ctx);
+    conduits.draw(ctx, L.flow);
     rings.draw(ctx, L, clock);
     effects.draw(ctx, L);
     core.draw(ctx, L);
@@ -197,6 +216,10 @@ function boot() {
   function frame(now) {
     raf = requestAnimationFrame(frame);
     const dMs = clock.tick(now);
+    if (dMs > 0 && quality.update(Math.min(dMs / 1000, CONFIG.MAX_FRAME), clock.smoothed)) {
+      applyQuality();
+      resize();
+    }
     acc += Math.min(dMs / 1000, CONFIG.MAX_FRAME);
     while (acc >= CONFIG.STEP) {
       update(CONFIG.STEP);
@@ -232,6 +255,7 @@ function boot() {
   });
 
   applyMotion();
+  applyQuality();
   resize();
   watchDpr();
   if (!document.hidden) start();

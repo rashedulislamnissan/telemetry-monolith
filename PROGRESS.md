@@ -1,8 +1,34 @@
 # Progress
 
 ## Status
-- **Done:** M1-M6 (look, signal bus, particles, surge, sound, reveal)
-- **Next:** M7, polish, resilience, deploy
+- **Done:** M1-M6, and M7's local work (polish and resilience)
+- **Next:** M7 deploy to GitHub Pages (waiting for the owner's go-ahead to create the public repo and push)
+
+## M7: polish and resilience (done locally)
+- **Owner details:** `config.js` now holds the owner's name, role, portfolio URL and repo URL, taken from the **visible** text of https://nissan-portfolio.pages.dev/. Its `<title>`/meta tags carry an older role line and were not used. The back-link has a title naming the owner. README rewritten for GitHub visitors (live link, how it works, controls, GIF placeholder, credits).
+- **Adaptive quality** (`js/quality.js`): watches the real smoothed frame time.
+  - **Step down:** after 1.5 s over 22 ms it drops a level. The four levels lower render DPR 2 → 1.5 → 1.25 → 1, particle cap 160 → 110 → 70 → 45 and label cap 28 → 20 → 14 → 10, turn off the type shimmer, then turn off the conduit dash flow.
+  - **Step up:** after 6 s under 18 ms. A drop within 20 s of a restore doubles the next restore wait (max 60 s).
+  - The device panel shows the true render scale, e.g. `2.00 (RENDER 1.00)`.
+- **Label piles fixed:** in the load burst (~40 files, 0.03 s apart) labels stacked into an unreadable block. A label is now skipped when it would overlap the last one drawn on the same conduit; the particle still shows and still carries its data for hover.
+- **Fallbacks:** `<script nomodule>` message for browsers without ES modules (the existing ones cover no Canvas 2D and boot errors). `.nojekyll` added for GitHub Pages.
+
+### Checks run
+- **Adaptive (Chromium @2x, CDP CPU throttle 12x):** level 0 → 1 → 2 → 3 within 10 s (canvas 2880 → 2160 → 1800 → 1440 px wide). Throttle removed: back to level 0 in 24 s, frames 16.7 ms. No errors.
+- **Hidden tab** (visibility overridden in-page, then `visibilitychange` dispatched): frame, ping and heap event counts frozen for 3 s while hidden; all resume when visible.
+- **No Canvas 2D** (`getContext` returns null): fallback message shown, no errors.
+- **Soak, Chromium, 11 min** (audio running, mouse loops, wheel, clicks, sampled every 30 s after forced GC):
+  - JS heap 1.82 MB at 30 s, 1.95 MB at 2 min, 2.00 MB at 11 min: it warms up and then is flat (+0.05 MB over the last 9 min).
+  - DOM nodes 113-119 (the debug text node swapping), listeners 24, documents 1, steady throughout.
+  - 4,574 events, 0 dropped, quality level 0 throughout, 0 console errors.
+- **Soak, Firefox and WebKit, 2.5 min each:** 0 errors, DOM stable at ~50 elements, 0 dropped (962 and 1,017 events).
+- **Final regressions:**
+  - M1: sizes, DPR cap, resize.
+  - M3: label audit (0 mismatches, spawned = bus).
+  - M4: 0 frames over 25 ms in all three engines, touch included.
+  - M5: silent before a gesture; mute persists.
+  - M6: tooltip = `performance.getEntriesByName()` field for field; caption 0 at 7 s and 1 at 10 s.
+- **GitHub Pages limits** checked on docs.github.com: published site up to 1 GB, soft 100 GB/month bandwidth, no commercial hosting. This site is about 200 KB and non-commercial.
 
 ## M6: the 10 s reveal (done)
 - `js/reveal.js` + DOM in `index.html` (all `data-self`):
@@ -126,9 +152,7 @@
 - Test harness note: Chrome does not count DevTools `evaluate()` calls as long tasks; trigger test long tasks from a `setTimeout` inside the page.
 - Dev note: Playwright needs `--no-proxy-server` (Chromium) and `network.proxy.type = 0` (Firefox) in this environment to reach the local server.
 
-## Next steps (M7)
-- Adaptive quality: watch real frame time; when it stays over budget, lower the particle cap, label cap, render scale (DPR) and decorative detail; restore when healthy.
-- Reduced-motion pass across everything; hidden-tab pause re-verified; mobile layout pass; fallback messages (no canvas, no ES modules).
-- Soak test: 10+ minutes, no memory growth (heap trend, pool sizes, DOM node count, cache sizes); no console errors in Chrome, Firefox, Safari.
-- README: live link, how it works, controls, GIF placeholder. Fill `config.js` placeholders with the owner (ask).
-- Deploy to GitHub Pages (ask before creating the repo or pushing).
+## Next steps (deploy)
+- Create public repo `rashedulislamnissan/telemetry-monolith`, push `main`, enable Pages from `main` / root.
+- Verify the live site: loads under `/telemetry-monolith/` with relative paths, ping works, no console errors in all three engines.
+- Record the demo GIF (`docs/demo.gif`); real Safari and real-device checks by hand.

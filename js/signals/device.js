@@ -22,7 +22,8 @@ function read() {
   device.threads = typeof nav.hardwareConcurrency === 'number' ? nav.hardwareConcurrency : null;
   device.memoryGB = typeof nav.deviceMemory === 'number' ? nav.deviceMemory : null;
   device.dpr = window.devicePixelRatio || 1;
-  device.renderDpr = Math.min(device.dpr, CONFIG.MAX_RENDER_DPR);
+  // renderDpr is owned by main.js (cap + adaptive quality); only seed it here.
+  if (device.version === 0) device.renderDpr = Math.min(device.dpr, CONFIG.MAX_RENDER_DPR);
   device.vw = window.innerWidth;
   device.vh = window.innerHeight;
   const c = nav.connection;
