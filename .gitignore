@@ -3,3 +3,7 @@ Thumbs.db
 *.log
 .vscode/
 node_modules/
+
+# Private planning files (kept on disk, never published)
+CLAUDE.md
+monolith.md
